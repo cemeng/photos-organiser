@@ -16,8 +16,8 @@ import (
 )
 
 func main() {
-	srcDirectory := "/Volumes/Second MacMini HDD/Pictures/2018/japan/"
-	destDirectory := "/Volumes/Second MacMini HDD/Pictures/2018/japan/processed/"
+	srcDirectory := "/Volumes/Second MacMini HDD/Pictures/2018/"
+	destDirectory := "/Volumes/Second MacMini HDD/Pictures/2018/processed/"
 	rand.Seed(time.Now().UnixNano())
 
 	files, err := ioutil.ReadDir(srcDirectory)
@@ -53,7 +53,7 @@ func processFile(srcDirectory, destDirectory, fname string) error {
 				return errors.Wrap(err, "Error getting filename from exif and attribute")
 			}
 		}
-	} else if extension == "MOV" || extension == "mov" || extension == "PNG" || extension == "png" {
+	} else if extension == "MOV" || extension == "mov" || extension == "PNG" || extension == "png" || extension == "MP4" {
 		destFilename, err = filenameFromAttribute(srcDirectory, filename, extension)
 		if err != nil {
 			return errors.Wrap(err, "Error getting filename from attribute")
