@@ -16,7 +16,7 @@ import (
 func main() {
 	srcDirectory := "/Volumes/Second MacMini HDD/Pictures/2018/japan/"
 	destDirectory := "/Volumes/Second MacMini HDD/Pictures/2018/japan/processed/"
-	fname := "IMG_7260.MOV"
+	fname := "ABWZ7457.JPG"
 	err := processFile(srcDirectory, destDirectory, fname)
 	if err != nil {
 		log.Fatalf("Error processing file %s: %s", fname, err)
@@ -33,7 +33,11 @@ func processFile(srcDirectory, destDirectory, fname string) error {
 	if extension == "JPG" || extension == "jpg" {
 		destFilename, err = filenameFromExif(srcDirectory, filename, extension)
 		if err != nil {
-			return errors.Wrap(err, "Error getting filename from exif")
+			// Getting filename from exif fails, use file attribute as failback
+			destFilename, err = filenameFromAttribute(srcDirectory, filename, extension)
+			if err != nil {
+				return errors.Wrap(err, "Error getting filename from exif and attribute")
+			}
 		}
 	} else if extension == "MOV" || extension == "mov" {
 		destFilename, err = filenameFromAttribute(srcDirectory, filename, extension)
@@ -87,5 +91,5 @@ func filenameFromExif(srcDirectory, filename, extension string) (string, error) 
 }
 
 func timeToFilename(time time.Time, extension string) string {
-	return fmt.Sprintf("%d-%02d-%d-%d:%02d:%02d.%s", time.Year(), time.Month(), time.Day(), time.Hour(), time.Minute(), time.Second(), extension)
+	return fmt.Sprintf("%d-%02d-%d-%02d:%02d:%02d.%s", time.Year(), time.Month(), time.Day(), time.Hour(), time.Minute(), time.Second(), extension)
 }
