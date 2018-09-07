@@ -6,18 +6,24 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"time"
 
+	"github.com/pkg/errors"
 	"github.com/rwcarlsen/goexif/exif"
 	"github.com/rwcarlsen/goexif/mknote"
 )
 
-// arguments: src directory, destination directory
 func main() {
-	// TODO: doesn't work with mov files as they don't have exif info
 	srcDirectory := "/Volumes/Second MacMini HDD/Pictures/2018/japan/"
 	destDirectory := "/Volumes/Second MacMini HDD/Pictures/2018/japan/processed/"
-	fname := "IMG_7343.JPG"
+	fname := "IMG_7260.MOV"
+	err := processFile(srcDirectory, destDirectory, fname)
+	if err != nil {
+		log.Fatalf("Error processing file %s: %s", fname, err)
+	}
+}
 
+func processFile(srcDirectory, destDirectory, fname string) error {
 	result := strings.Split(fname, ".")
 	filename := result[0]
 	extension := result[1]
@@ -27,16 +33,36 @@ func main() {
 	if extension == "JPG" || extension == "jpg" {
 		destFilename, err = filenameFromExif(srcDirectory, filename, extension)
 		if err != nil {
-			log.Fatalf("Error getting filename %s", err)
+			return errors.Wrap(err, "Error getting filename from exif")
+		}
+	} else if extension == "MOV" || extension == "mov" {
+		destFilename, err = filenameFromAttribute(srcDirectory, filename, extension)
+		if err != nil {
+			return errors.Wrap(err, "Error getting filename from attribute")
 		}
 	}
 
 	cmd := exec.Command("cp", "-a", srcDirectory+fname, destDirectory+destFilename) // cp -a preserves file attributes
 	err = cmd.Run()
 	if err != nil {
-		log.Fatalf("Error copying from %s to %s, err: %s", srcDirectory+fname, destDirectory+destFilename, err)
+		return errors.Wrap(err, "Error copying")
 	}
 	fmt.Printf("Copied to: %s\n", destDirectory+destFilename)
+	return nil
+}
+
+func filenameFromAttribute(srcDirectory, filename, extension string) (string, error) {
+	fullFilepath := srcDirectory + filename + "." + extension
+	_, err := os.Open(fullFilepath)
+	if err != nil {
+		return "", err
+	}
+	fi, err := os.Stat(fullFilepath)
+	if err != nil {
+		return "", err
+	}
+	modifiedTime := fi.ModTime()
+	return timeToFilename(modifiedTime, extension), nil
 }
 
 func filenameFromExif(srcDirectory, filename, extension string) (string, error) {
@@ -57,10 +83,9 @@ func filenameFromExif(srcDirectory, filename, extension string) (string, error) 
 		return "", err
 	}
 
-	// construct a new filename: yyyy-mm-dd-hh:mm:ss.JPG
-	year, month, day := pictureTakenTime.Date()
-	destFilename := fmt.Sprintf("%d-%02d-%d-%d:%d:%d.%s", year, month, day, pictureTakenTime.Hour(), pictureTakenTime.Minute(), pictureTakenTime.Second(), extension)
+	return timeToFilename(pictureTakenTime, extension), nil
+}
 
-	fmt.Println("Converted: ", destFilename)
-	return destFilename, nil
+func timeToFilename(time time.Time, extension string) string {
+	return fmt.Sprintf("%d-%02d-%d-%d:%02d:%02d.%s", time.Year(), time.Month(), time.Day(), time.Hour(), time.Minute(), time.Second(), extension)
 }
