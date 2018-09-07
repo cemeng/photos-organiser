@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
@@ -16,10 +17,22 @@ import (
 func main() {
 	srcDirectory := "/Volumes/Second MacMini HDD/Pictures/2018/japan/"
 	destDirectory := "/Volumes/Second MacMini HDD/Pictures/2018/japan/processed/"
-	fname := "ABWZ7457.JPG"
-	err := processFile(srcDirectory, destDirectory, fname)
+
+	files, err := ioutil.ReadDir(srcDirectory)
 	if err != nil {
-		log.Fatalf("Error processing file %s: %s", fname, err)
+		log.Fatal(err)
+	}
+
+	for _, f := range files {
+		// fmt.Printf("Processing %s\n", f.Name())
+		filename := f.Name()
+		if f.IsDir() || filename == ".DS_Store" {
+			continue
+		}
+		err := processFile(srcDirectory, destDirectory, filename)
+		if err != nil {
+			log.Fatalf("Error processing file %s: %s", filename, err)
+		}
 	}
 }
 
@@ -39,11 +52,13 @@ func processFile(srcDirectory, destDirectory, fname string) error {
 				return errors.Wrap(err, "Error getting filename from exif and attribute")
 			}
 		}
-	} else if extension == "MOV" || extension == "mov" {
+	} else if extension == "MOV" || extension == "mov" || extension == "PNG" || extension == "png" {
 		destFilename, err = filenameFromAttribute(srcDirectory, filename, extension)
 		if err != nil {
 			return errors.Wrap(err, "Error getting filename from attribute")
 		}
+	} else {
+		return errors.New("Cannot handle file with extension " + extension)
 	}
 
 	cmd := exec.Command("cp", "-a", srcDirectory+fname, destDirectory+destFilename) // cp -a preserves file attributes
