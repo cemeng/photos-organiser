@@ -24,7 +24,6 @@ func main() {
 	}
 
 	for _, f := range files {
-		// fmt.Printf("Processing %s\n", f.Name())
 		filename := f.Name()
 		if f.IsDir() || filename == ".DS_Store" {
 			continue
@@ -106,5 +105,5 @@ func filenameFromExif(srcDirectory, filename, extension string) (string, error) 
 }
 
 func timeToFilename(time time.Time, extension string) string {
-	return fmt.Sprintf("%d-%02d-%d-%02d:%02d:%02d.%s", time.Year(), time.Month(), time.Day(), time.Hour(), time.Minute(), time.Second(), extension)
+	return fmt.Sprintf("%d-%02d-%d-%02d-%02d-%02d.%s", time.Year(), time.Month(), time.Day(), time.Hour(), time.Minute(), time.Second(), extension)
 }
