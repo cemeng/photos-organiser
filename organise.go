@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"math/rand"
 	"os"
 	"os/exec"
 	"strings"
@@ -17,6 +18,7 @@ import (
 func main() {
 	srcDirectory := "/Volumes/Second MacMini HDD/Pictures/2018/japan/"
 	destDirectory := "/Volumes/Second MacMini HDD/Pictures/2018/japan/processed/"
+	rand.Seed(time.Now().UnixNano())
 
 	files, err := ioutil.ReadDir(srcDirectory)
 	if err != nil {
@@ -60,12 +62,12 @@ func processFile(srcDirectory, destDirectory, fname string) error {
 		return errors.New("Cannot handle file with extension " + extension)
 	}
 
-	cmd := exec.Command("cp", "-a", srcDirectory+fname, destDirectory+destFilename) // cp -a preserves file attributes
+	cmd := exec.Command("cp", "-an", srcDirectory+fname, destDirectory+destFilename) // cp -a preserves file attributes
 	err = cmd.Run()
 	if err != nil {
 		return errors.Wrap(err, "Error copying")
 	}
-	fmt.Printf("Copied to: %s\n", destDirectory+destFilename)
+	fmt.Printf("%s processed\n", destDirectory+destFilename)
 	return nil
 }
 
@@ -105,5 +107,15 @@ func filenameFromExif(srcDirectory, filename, extension string) (string, error) 
 }
 
 func timeToFilename(time time.Time, extension string) string {
-	return fmt.Sprintf("%d-%02d-%d-%02d-%02d-%02d.%s", time.Year(), time.Month(), time.Day(), time.Hour(), time.Minute(), time.Second(), extension)
+	return fmt.Sprintf("%d-%02d-%02d-%02d-%02d-%s.%s", time.Year(), time.Month(), time.Day(), time.Hour(), time.Minute(), randomSuffix(4), extension)
+}
+
+const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890"
+
+func randomSuffix(n int) string {
+	b := make([]byte, n)
+	for i := range b {
+		b[i] = letterBytes[rand.Intn(len(letterBytes))]
+	}
+	return string(b)
 }
