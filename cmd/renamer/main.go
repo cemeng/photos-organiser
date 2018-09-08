@@ -16,8 +16,8 @@ import (
 )
 
 func main() {
-	srcDirectory := "/Volumes/Second MacMini HDD/Pictures/2018/"
-	destDirectory := "/Volumes/Second MacMini HDD/Pictures/2018/processed/"
+	srcDirectory := "/Volumes/Second MacMini HDD/Pictures/2018/02/"
+	destDirectory := "/Volumes/Second MacMini HDD/Pictures/2018/02/processed/"
 	rand.Seed(time.Now().UnixNano())
 
 	files, err := ioutil.ReadDir(srcDirectory)
