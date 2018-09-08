@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -16,8 +17,23 @@ import (
 )
 
 func main() {
-	srcDirectory := "/Volumes/Second MacMini HDD/Pictures/2018/02/"
-	destDirectory := "/Volumes/Second MacMini HDD/Pictures/2018/02/processed/"
+	var srcDirectory string
+	var destDirectory string
+	flag.StringVar(&srcDirectory, "src", "", "source directory")
+	flag.StringVar(&destDirectory, "dest", "", "destination directory")
+	flag.Parse()
+
+	if srcDirectory == "" {
+		log.Fatal("src argument is required, dest argument is optional, usage: renamer -src=xx/ -dest=xx/")
+	}
+	// By default the destination directory will be the same as source directory if it is not supplied via dest argument
+	if destDirectory == "" {
+		destDirectory = srcDirectory
+	}
+	if srcDirectory[len(srcDirectory)-1:] != "/" || destDirectory[len(destDirectory)-1:] != "/" {
+		log.Fatal("src and dest directories need a trailing slash, e.g: -src=directory/ not -src=directory")
+	}
+
 	rand.Seed(time.Now().UnixNano())
 
 	files, err := ioutil.ReadDir(srcDirectory)
@@ -53,7 +69,7 @@ func processFile(srcDirectory, destDirectory, fname string) error {
 				return errors.Wrap(err, "Error getting filename from exif and attribute")
 			}
 		}
-	} else if extension == "MOV" || extension == "mov" || extension == "PNG" || extension == "png" || extension == "MP4" {
+	} else if extension == "MOV" || extension == "mov" || extension == "PNG" || extension == "png" || extension == "MP4" || extension == "mp4" {
 		destFilename, err = filenameFromAttribute(srcDirectory, filename, extension)
 		if err != nil {
 			return errors.Wrap(err, "Error getting filename from attribute")

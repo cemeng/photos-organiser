@@ -12,7 +12,7 @@ import (
 )
 
 func main() {
-	srcDirectory := "/Volumes/Second MacMini HDD/Pictures/2018/processed/"
+	srcDirectory := "/Volumes/Second MacMini HDD/Pictures/2017/"
 
 	files, err := ioutil.ReadDir(srcDirectory)
 	if err != nil {
