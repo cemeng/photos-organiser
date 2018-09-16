@@ -69,7 +69,7 @@ func processFile(srcDirectory, destDirectory, fname string) error {
 				return errors.Wrap(err, "Error getting filename from exif and attribute")
 			}
 		}
-	} else if extension == "MOV" || extension == "mov" || extension == "PNG" || extension == "png" || extension == "MP4" || extension == "mp4" {
+	} else if extension == "MOV" || extension == "mov" || extension == "PNG" || extension == "png" || extension == "MP4" || extension == "mp4" || extension == "3gp" {
 		destFilename, err = filenameFromAttribute(srcDirectory, filename, extension)
 		if err != nil {
 			return errors.Wrap(err, "Error getting filename from attribute")
