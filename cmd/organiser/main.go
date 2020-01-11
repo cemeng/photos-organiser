@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -12,13 +13,19 @@ import (
 )
 
 func main() {
-	srcDirectory := "/Volumes/Second MacMini HDD/Pictures/2017/"
+	// srcDirectory := "/Volumes/Second MacMini HDD/Pictures/2017/"
+	var srcDirectory string
+	flag.StringVar(&srcDirectory, "src", "", "source directory")
+	flag.Parse()
+
+	if srcDirectory == "" {
+		log.Fatal("src argument is required, usage: organiser -src=xx/ ")
+	}
 
 	files, err := ioutil.ReadDir(srcDirectory)
 	if err != nil {
 		log.Fatal(err)
 	}
-
 	// create month buckets
 	for i := 1; i <= 12; i++ {
 		m := fmt.Sprintf("%02d", i)
@@ -48,7 +55,7 @@ func processFile(srcDirectory, filename string) error {
 	destDirectory := fmt.Sprintf("%s%s/", srcDirectory, month)
 	cmd := exec.Command("cp", "-a", srcDirectory+filename, destDirectory)
 	err := cmd.Run()
-	fmt.Printf("moving to %s\n", destDirectory+filename)
+	fmt.Printf("copying to %s\n", destDirectory+filename)
 	if err != nil {
 		errors.Wrap(err, "Error copying file")
 	}
