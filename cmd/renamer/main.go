@@ -8,12 +8,19 @@ import (
 	"math/rand"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
 	"github.com/pkg/errors"
 	"github.com/rwcarlsen/goexif/exif"
 	"github.com/rwcarlsen/goexif/mknote"
+)
+
+const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890"
+
+var (
+	processedFilePattern = regexp.MustCompile(`^\d{4}-\d{2}-\d{2}-\d{2}-\d{2}-\d{2}-[a-zA-Z0-9]{4}\.[a-zA-Z0-9]+$`)
 )
 
 func main() {
@@ -86,6 +93,15 @@ func main() {
 		if f.IsDir() || filename == ".DS_Store" {
 			continue
 		}
+
+		// Check if file is already in our processed format
+		if processedFilePattern.MatchString(filename) {
+			if dryRun {
+				fmt.Printf("[DRY-RUN] Skipping already processed file: %s\n", filename)
+			}
+			continue
+		}
+
 		err := processFile(srcDirectory, destDirectory, filename, dryRun)
 		if err != nil {
 			log.Fatalf("Error processing file %s: %s", filename, err)
@@ -95,6 +111,10 @@ func main() {
 
 func processFile(srcDirectory, destDirectory, fname string, dryRun bool) error {
 	result := strings.Split(fname, ".")
+	if len(result) != 2 {
+		fmt.Printf("Ignoring file without extension: %s\n", fname)
+		return nil
+	}
 	filename := result[0]
 	extension := result[1]
 
@@ -201,8 +221,6 @@ func filenameFromExif(srcDirectory, filename, extension string) (string, error) 
 func timeToFilename(time time.Time, extension string) string {
 	return fmt.Sprintf("%d-%02d-%02d-%02d-%02d-%02d-%s.%s", time.Year(), time.Month(), time.Day(), time.Hour(), time.Minute(), time.Second(), randomSuffix(4), extension)
 }
-
-const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890"
 
 // expandTilde replaces ~ with the user's home directory
 func expandTilde(path string) (string, error) {
