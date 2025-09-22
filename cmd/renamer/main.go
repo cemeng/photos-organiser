@@ -3,11 +3,11 @@ package main
 import (
 	"flag"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"math/rand"
 	"os"
-	"os/exec"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -34,9 +34,7 @@ func main() {
 		log.Fatal("src and dest directories need a trailing slash, e.g: -src=directory/ not -src=directory")
 	}
 
-	rand.Seed(time.Now().UnixNano())
-
-	files, err := ioutil.ReadDir(srcDirectory)
+	files, err := os.ReadDir(srcDirectory)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -60,7 +58,8 @@ func processFile(srcDirectory, destDirectory, fname string) error {
 
 	var destFilename string
 	var err error
-	if extension == "JPG" || extension == "jpg" {
+	switch extension {
+	case "JPG", "jpg", "HEIC":
 		destFilename, err = filenameFromExif(srcDirectory, filename, extension)
 		if err != nil {
 			// Getting filename from exif fails, use file attribute as failback
@@ -69,20 +68,47 @@ func processFile(srcDirectory, destDirectory, fname string) error {
 				return errors.Wrap(err, "Error getting filename from exif and attribute")
 			}
 		}
-	} else if extension == "MOV" || extension == "mov" || extension == "PNG" || extension == "png" || extension == "MP4" || extension == "mp4" || extension == "3gp" {
+	case "MOV", "mov", "PNG", "png", "MP4", "mp4", "3gp":
 		destFilename, err = filenameFromAttribute(srcDirectory, filename, extension)
 		if err != nil {
 			return errors.Wrap(err, "Error getting filename from attribute")
 		}
-	} else {
-		return errors.New("Cannot handle file with extension " + extension)
+	default:
+		fmt.Printf("Ignoring file with unsupported extension: %s\n", fname)
+		// return errors.New("Cannot handle file with extension " + extension)
 	}
 
-	cmd := exec.Command("cp", "-an", srcDirectory+fname, destDirectory+destFilename) // cp -a preserves file attributes
-	err = cmd.Run()
+	// Copy the file to destination
+	srcFile, err := os.Open(srcDirectory + fname)
 	if err != nil {
-		return errors.Wrap(err, "Error copying")
+		return errors.Wrap(err, "Error opening source file")
 	}
+	defer srcFile.Close()
+
+	destFile, err := os.OpenFile(destDirectory+destFilename, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0666)
+	if err != nil {
+		return errors.Wrap(err, fmt.Sprintf("Error creating destination file %s", destDirectory+destFilename))
+	}
+	defer destFile.Close()
+
+	_, err = io.Copy(destFile, srcFile)
+	if err != nil {
+		return errors.Wrap(err, "Error copying file")
+	}
+
+	// move source file to processed directory
+	newpath := filepath.Join(srcDirectory, "processed")
+	err = os.MkdirAll(newpath, os.ModePerm)
+	if err != nil {
+		return errors.Wrap(err, "error creating processed directory")
+	}
+
+	// move source file to processed using os.Rename
+	err = os.Rename(srcDirectory+fname, filepath.Join(srcDirectory, "processed", fname))
+	if err != nil {
+		return errors.Wrap(err, "Error moving source file to processed")
+	}
+
 	fmt.Printf("%s processed\n", destDirectory+destFilename)
 	return nil
 }
@@ -123,7 +149,7 @@ func filenameFromExif(srcDirectory, filename, extension string) (string, error) 
 }
 
 func timeToFilename(time time.Time, extension string) string {
-	return fmt.Sprintf("%d-%02d-%02d-%02d-%02d-%s.%s", time.Year(), time.Month(), time.Day(), time.Hour(), time.Minute(), randomSuffix(4), extension)
+	return fmt.Sprintf("%d-%02d-%02d-%02d-%02d-%02d-%s.%s", time.Year(), time.Month(), time.Day(), time.Hour(), time.Minute(), time.Second(), randomSuffix(4), extension)
 }
 
 const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890"

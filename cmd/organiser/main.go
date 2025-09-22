@@ -3,10 +3,10 @@ package main
 import (
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -22,7 +22,7 @@ func main() {
 		log.Fatal("src argument is required, usage: organiser -src=xx/ ")
 	}
 
-	files, err := ioutil.ReadDir(srcDirectory)
+	files, err := os.ReadDir(srcDirectory)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -48,7 +48,7 @@ func main() {
 }
 
 func processFile(srcDirectory, filename string) error {
-	// filename has to be on the form of: 2018-07-19-13-18-s8fx.JPG
+	// Filename has to be on the form of: 2018-07-19-13-18-s8fx.JPG
 	r := strings.Split(filename, "-")
 	month := r[1]
 
@@ -59,6 +59,21 @@ func processFile(srcDirectory, filename string) error {
 	if err != nil {
 		errors.Wrap(err, "Error copying file")
 	}
+
+	// Move source file to processed directory
+	newpath := filepath.Join(srcDirectory, "processed")
+	err = os.MkdirAll(newpath, os.ModePerm)
+	if err != nil {
+		return errors.Wrap(err, "error creating processed directory")
+	}
+	// move source file to processed
+	cmd = exec.Command("mv", srcDirectory+filename, srcDirectory+"/processed/"+filename)
+	err = cmd.Run()
+	if err != nil {
+		fmt.Printf("Error moving source file to processed")
+		return errors.Wrap(err, "Error moving source file")
+	}
+
 	return nil
 }
 

@@ -15,7 +15,7 @@ the `/Pictures` directory.
 
 First run the `renamer`: `renamer -src=source-dir/ -dest=destination-dir/`
 
-This will copy the and rename the pics to our standard to the destintion directory.
+This will copy and rename the pics to the destination directory.
 
 `go run cmd/renamer/main.go -src="/Users/cemeng/Pictures/camera/2017/" -dest="/Volumes/Second MacMini HDD/Pictures/2017/"`
 
