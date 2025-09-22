@@ -3,10 +3,10 @@ package main
 import (
 	"flag"
 	"fmt"
-	"io"
 	"log"
 	"math/rand"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -148,22 +148,11 @@ func processFile(srcDirectory, destDirectory, fname string, dryRun bool) error {
 		return nil
 	}
 
-	// Copy the file to destination
-	srcFile, err := os.Open(srcDirectory + fname)
+	// Copy file to destination preserving all attributes (-a) and preventing overwrite (-n)
+	cmd := exec.Command("cp", "-an", srcDirectory+fname, destDirectory+destFilename)
+	err = cmd.Run()
 	if err != nil {
-		return errors.Wrap(err, "Error opening source file")
-	}
-	defer srcFile.Close()
-
-	destFile, err := os.OpenFile(destDirectory+destFilename, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0666)
-	if err != nil {
-		return errors.Wrap(err, fmt.Sprintf("Error creating destination file %s", destDirectory+destFilename))
-	}
-	defer destFile.Close()
-
-	_, err = io.Copy(destFile, srcFile)
-	if err != nil {
-		return errors.Wrap(err, "Error copying file")
+		return errors.Wrap(err, fmt.Sprintf("Error copying file from %s to %s", srcDirectory+fname, destDirectory+destFilename))
 	}
 
 	// move source file to processed directory
