@@ -10,14 +10,17 @@ Renamer needs to be run first.
 
 ## Renamer
 
-After you download your pictures from your phone, they'd normally end up in
-the `/Pictures` directory.
+After you download your pictures from your phone, they'd normally end up in the `/Pictures` directory.
 
 First run the `renamer`: `renamer -src=source-dir/ -dest=destination-dir/`
 
-This will copy and rename the pics to the destination directory.
+The command will process the files in the source folder by doing the following:
+* Rename the file and move it to the destination folder
+* Remove the original file into `/processed` folder
 
-`go run cmd/renamer/main.go -src="/Users/cemeng/Pictures/camera/2017/" -dest="/Volumes/Second MacMini HDD/Pictures/2017/"`
+`go run cmd/renamer/main.go -src="~/Pictures/camera/2017/" -dest="/Volumes/Second MacMini HDD/Pictures/2017/"`
+
+The `dest` folder is optional - if not supplied, it will use the `source` folder as destination.
 
 ## Organiser
 
