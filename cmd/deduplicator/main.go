@@ -107,6 +107,13 @@ func main() {
 		go worker(i, paths, results, &wg)
 	}
 
+	// Counters for statistics
+	var (
+		numDirs  int64
+		numFiles int64
+		statsMu  sync.Mutex
+	)
+
 	// Start a goroutine to walk the directory
 	go func() {
 		err = filepath.Walk(*srcPtr, func(path string, info os.FileInfo, err error) error {
@@ -114,9 +121,17 @@ func main() {
 				return err
 			}
 
-			if !info.IsDir() {
-				paths <- path
+			if info.IsDir() {
+				statsMu.Lock()
+				numDirs++
+				statsMu.Unlock()
+				return nil
 			}
+
+			statsMu.Lock()
+			numFiles++
+			statsMu.Unlock()
+			paths <- path
 			return nil
 		})
 
@@ -141,14 +156,18 @@ func main() {
 		filesByHash[result.Hash] = append(filesByHash[result.Hash], result)
 	}
 
-	// Print duplicate files
+	// Print duplicate files and count statistics
 	duplicatesFound := false
+	var duplicateGroups int
+	var totalDuplicates int
 	for hash, files := range filesByHash {
 		if len(files) > 1 {
 			if !duplicatesFound {
 				fmt.Println("Found duplicate files:")
 				duplicatesFound = true
 			}
+			duplicateGroups++
+			totalDuplicates += len(files) - 1 // subtract 1 to count only the duplicates (not the original)
 			fmt.Printf("\nDuplicate group (SHA256: %s):\n", hash[:8])
 			for _, file := range files {
 				fmt.Printf("- %s (size: %d bytes)\n", file.Path, file.Size)
@@ -159,6 +178,13 @@ func main() {
 	if !duplicatesFound {
 		fmt.Println("No duplicate files found.")
 	}
+
+	// Print statistics
+	fmt.Printf("\nProcessing Summary:\n")
+	fmt.Printf("- Directories scanned: %d\n", numDirs)
+	fmt.Printf("- Files processed: %d\n", numFiles)
+	fmt.Printf("- Duplicate groups found: %d\n", duplicateGroups)
+	fmt.Printf("- Total duplicates found: %d\n", totalDuplicates)
 }
 
 func calculateFileHash(filePath string) (string, error) {
