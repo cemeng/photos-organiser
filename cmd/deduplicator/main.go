@@ -8,12 +8,38 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"runtime"
+	"sync"
 )
 
 type FileInfo struct {
 	Path string
 	Size int64
 	Hash string
+}
+
+// worker processes files from the paths channel and sends results to the results channel
+func worker(id int, paths <-chan string, results chan<- FileInfo, wg *sync.WaitGroup) {
+	defer wg.Done()
+	for path := range paths {
+		info, err := os.Stat(path)
+		if err != nil {
+			fmt.Printf("Warning: Could not stat %s: %v\n", path, err)
+			continue
+		}
+
+		hash, err := calculateFileHash(path)
+		if err != nil {
+			fmt.Printf("Warning: Could not process %s: %v\n", path, err)
+			continue
+		}
+
+		results <- FileInfo{
+			Path: path,
+			Size: info.Size(),
+			Hash: hash,
+		}
+	}
 }
 
 func main() {
@@ -65,41 +91,54 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Calculate number of workers based on CPU cores
+	numWorkers := runtime.NumCPU()
+
+	// Create channels for coordination
+	paths := make(chan string)
+	results := make(chan FileInfo)
+
+	// Create WaitGroup for workers
+	var wg sync.WaitGroup
+
+	// Start workers
+	for i := 0; i < numWorkers; i++ {
+		wg.Add(1)
+		go worker(i, paths, results, &wg)
+	}
+
+	// Start a goroutine to walk the directory
+	go func() {
+		err = filepath.Walk(*srcPtr, func(path string, info os.FileInfo, err error) error {
+			if err != nil {
+				return err
+			}
+
+			if !info.IsDir() {
+				paths <- path
+			}
+			return nil
+		})
+
+		if err != nil {
+			fmt.Printf("Error walking through directory: %v\n", err)
+			os.Exit(1)
+		}
+		close(paths)
+	}()
+
+	// Start a goroutine to wait for workers to finish and close results channel
+	go func() {
+		wg.Wait()
+		close(results)
+	}()
+
 	// Map to store files by their hash
 	filesByHash := make(map[string][]FileInfo)
 
-	// Walk through directory
-	err = filepath.Walk(*srcPtr, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-
-		// Skip directories
-		if info.IsDir() {
-			return nil
-		}
-
-		// Calculate file hash
-		hash, err := calculateFileHash(path)
-		if err != nil {
-			fmt.Printf("Warning: Could not process %s: %v\n", path, err)
-			return nil
-		}
-
-		// Store file info
-		fileInfo := FileInfo{
-			Path: path,
-			Size: info.Size(),
-			Hash: hash,
-		}
-		filesByHash[hash] = append(filesByHash[hash], fileInfo)
-
-		return nil
-	})
-
-	if err != nil {
-		fmt.Printf("Error walking through directory: %v\n", err)
-		os.Exit(1)
+	// Collect results
+	for result := range results {
+		filesByHash[result.Hash] = append(filesByHash[result.Hash], result)
 	}
 
 	// Print duplicate files
