@@ -53,10 +53,25 @@ func main() {
 		flag.Usage()
 		os.Exit(1)
 	}
+
+	// Expand tilde to home directory in both source and destination paths
+	var err error
+	srcDirectory, err = expandTilde(srcDirectory)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if destDirectory != "" {
+		destDirectory, err = expandTilde(destDirectory)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+
 	// By default the destination directory will be the same as source directory if it is not supplied via dest argument
 	if destDirectory == "" {
 		destDirectory = srcDirectory
 	}
+
 	if srcDirectory[len(srcDirectory)-1:] != "/" || destDirectory[len(destDirectory)-1:] != "/" {
 		log.Fatal("src and dest directories need a trailing slash, e.g: -src=directory/ not -src=directory")
 	}
@@ -188,6 +203,38 @@ func timeToFilename(time time.Time, extension string) string {
 }
 
 const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890"
+
+// expandTilde replaces ~ with the user's home directory
+func expandTilde(path string) (string, error) {
+	if path == "" {
+		return path, nil
+	}
+
+	if path[0] != '~' {
+		return path, nil
+	}
+
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", errors.Wrap(err, "could not get user home directory")
+	}
+
+	if len(path) == 1 {
+		return home, nil
+	}
+
+	if path[1] == '/' {
+		// Preserve trailing slash if it exists
+		hasTrailingSlash := path[len(path)-1] == '/'
+		expanded := filepath.Join(home, path[2:])
+		if hasTrailingSlash {
+			expanded += "/"
+		}
+		return expanded, nil
+	}
+
+	return path, nil
+}
 
 // containsHelpFlag checks if -h, -help, or --help is present in command line arguments
 func containsHelpFlag() bool {
