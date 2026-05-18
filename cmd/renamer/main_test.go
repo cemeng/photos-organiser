@@ -122,7 +122,7 @@ func TestProcessFile(t *testing.T) {
 	}()
 
 	// Process the test file
-	err = processFile(srcDir, destDir, "gopher-stand.jpg")
+	err = processFile(srcDir, destDir, "gopher-stand.jpg", false)
 	if err != nil {
 		t.Fatalf("processFile() error = %v", err)
 	}
