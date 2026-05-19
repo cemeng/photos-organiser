@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 
@@ -91,20 +90,19 @@ func processFile(srcDirectory, filename string, dryRun bool) error {
 	destPath := filepath.Join(destDirectory, filename)
 
 	if dryRun {
-		fmt.Printf("[DRY-RUN] Would copy:\n")
+		fmt.Printf("[DRY-RUN] Would move:\n")
 		fmt.Printf("  From: %s\n", filepath.Join(srcDirectory, filename))
 		fmt.Printf("  To:   %s\n", destPath)
 		fmt.Println("---")
 		return nil
 	}
 
-	// Copy file to month directory
-	cmd := exec.Command("cp", "-a", srcDirectory+filename, destDirectory)
-	err := cmd.Run()
+	// Move file to month directory
+	err := os.Rename(filepath.Join(srcDirectory, filename), destPath)
 	if err != nil {
-		return errors.Wrap(err, "Error copying file")
+		return errors.Wrap(err, "Error moving file")
 	}
-	fmt.Printf("Copied to %s\n", destPath)
+	fmt.Printf("Moved to %s\n", destPath)
 
 	return nil
 }
