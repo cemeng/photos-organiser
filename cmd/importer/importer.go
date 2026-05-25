@@ -248,18 +248,18 @@ func splitExtension(name string) (ext, base string, err error) {
 	return ext, base, nil
 }
 
-// buildDestFilename produces YYYY-MM-DD-HH-mm-<sanitized-base>.<ext>
+// buildDestFilename produces YYYY-MM-DD-HH-mm-<sanitized-base>.<EXT>
 func buildDestFilename(t time.Time, base, ext string) string {
 	sanitized := sanitizeBasename(base)
 	return fmt.Sprintf("%04d-%02d-%02d-%02d-%02d-%s.%s",
 		t.Year(), t.Month(), t.Day(), t.Hour(), t.Minute(),
-		sanitized, strings.ToLower(ext))
+		sanitized, strings.ToUpper(ext))
 }
 
-// sanitizeBasename lowercases and replaces non-alphanumeric characters with _.
+// sanitizeBasename uppercases and replaces non-alphanumeric characters with _.
 func sanitizeBasename(name string) string {
 	var b strings.Builder
-	for _, r := range strings.ToLower(name) {
+	for _, r := range strings.ToUpper(name) {
 		if unicode.IsLetter(r) || unicode.IsDigit(r) {
 			b.WriteRune(r)
 		} else {
@@ -403,11 +403,15 @@ func fileHash(path string) (string, error) {
 	return hex.EncodeToString(h.Sum(nil)), nil
 }
 
-// writeReport writes the import report to dest and returns the path.
+// writeReport writes the import report to the working directory and returns the path.
 func writeReport(r *ImportReport) (string, error) {
 	name := fmt.Sprintf("import-report-%s.txt",
 		r.StartedAt.Format("2006-01-02-15-04-05"))
-	path := filepath.Join(r.Destination, name)
+	wd, err := os.Getwd()
+	if err != nil {
+		return "", fmt.Errorf("getting working directory: %w", err)
+	}
+	path := filepath.Join(wd, name)
 
 	f, err := os.Create(path)
 	if err != nil {

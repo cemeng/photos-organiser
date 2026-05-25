@@ -109,6 +109,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.screen != screenExecuting {
 				return m, tea.Quit
 			}
+		default:
+			if m.screen == screenDone {
+				return m, tea.Quit
+			}
 		}
 
 	case spinner.TickMsg:
@@ -252,6 +256,8 @@ func (m model) View() string {
 		} else {
 			b.WriteString(styleMuted.Render("  Aborted."))
 		}
+		b.WriteString("\n")
+		b.WriteString(styleMuted.Render("  Press any key to exit."))
 	}
 
 	b.WriteString("\n\n")
